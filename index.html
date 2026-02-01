@@ -1,0 +1,2153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="description" content="Strategic network conquest - capture nodes, defeat AI factions">
+<title>ONW</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ========================================
+   NOTHING OS DESIGN SYSTEM
+   ======================================== */
+:root {
+  /* Backgrounds */
+  --bg-primary: #000000;
+  --bg-surface: #0A0A0A;
+  --bg-card: #1A1A1A;
+  --bg-elevated: #2A2A2A;
+  /* Text */
+  --text-primary: #FFFFFF;
+  --text-secondary: #B3B3B3;
+  --text-muted: #666666;
+  /* Accent */
+  --accent: #D71921;
+  /* Borders */
+  --border-subtle: #333333;
+  --border-hover: #444444;
+  /* Faction colors */
+  --faction-red: #E53935;
+  --faction-blue: #1E88E5;
+  --faction-green: #43A047;
+  --faction-yellow: #FDD835;
+  --faction-purple: #8E24AA;
+  --faction-unowned: #404040;
+  /* Colorblind palette */
+  --cb-red: #D55E00;
+  --cb-blue: #0072B2;
+  --cb-green: #009E73;
+  --cb-yellow: #F0E442;
+  --cb-purple: #CC79A7;
+  /* Spacing */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  /* Transitions */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 250ms ease-out;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ========================================
+   COMPONENT STYLES
+   ======================================== */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: var(--sp-3) var(--sp-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.btn:hover { border-color: var(--border-hover); background: var(--bg-elevated); }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+.btn--primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+.btn--primary:hover { background: #E0E0E0; border-color: #E0E0E0; }
+.btn--danger { border-color: var(--accent); color: var(--accent); }
+.btn--danger:hover { background: rgba(215,25,33,0.1); }
+.btn--wide { width: 100%; }
+.btn--sm { padding: var(--sp-2) var(--sp-4); min-height: 36px; font-size: 13px; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6);
+}
+
+.input {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  min-height: 44px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.input:focus { border-color: var(--text-secondary); }
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--sp-6) 0;
+}
+
+.dot-pattern {
+  background-image: radial-gradient(circle, var(--border-subtle) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* ========================================
+   SCREEN SYSTEM
+   ======================================== */
+.screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.screen.active { display: flex; }
+
+.screen-header {
+  padding: var(--sp-6) var(--sp-6) var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+.screen-header h2 { font-size: 18px; flex: 1; }
+
+.screen-content {
+  flex: 1;
+  padding: 0 var(--sp-6) var(--sp-6);
+  overflow-y: auto;
+}
+
+.back-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.back-btn:hover { border-color: var(--border-hover); }
+
+/* ========================================
+   SPLASH SCREEN
+   ======================================== */
+#splash {
+  align-items: center; justify-content: center;
+  background: var(--bg-primary);
+}
+#splash .logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  margin-bottom: var(--sp-2);
+}
+#splash .subtitle {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+#splash .loader {
+  margin-top: var(--sp-10);
+  width: 120px; height: 2px;
+  background: var(--border-subtle);
+  border-radius: 1px;
+  overflow: hidden;
+}
+#splash .loader-bar {
+  width: 0%; height: 100%;
+  background: var(--text-primary);
+  transition: width 0.8s ease-out;
+}
+
+/* ========================================
+   MENU SCREEN
+   ======================================== */
+#menu {
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-8);
+}
+#menu .menu-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  margin-bottom: var(--sp-2);
+  text-align: center;
+}
+#menu .menu-game-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-10);
+  text-align: center;
+}
+#menu .menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: 280px;
+}
+
+/* ========================================
+   GAME SCREEN
+   ======================================== */
+#game {
+  background: var(--bg-primary);
+}
+#game-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.faction-indicators {
+  display: flex;
+  gap: var(--sp-2);
+}
+.faction-ind {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+.faction-ind.current-turn {
+  border-color: var(--text-primary);
+}
+.faction-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.faction-ind.eliminated { opacity: 0.25; text-decoration: line-through; }
+#canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+#gameCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+#game-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
+  min-height: 48px;
+  flex-shrink: 0;
+}
+#turn-info {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+#game-footer .btn { font-size: 13px; }
+
+/* ========================================
+   GAME OVER SCREEN
+   ======================================== */
+#gameover {
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-8);
+  text-align: center;
+}
+#gameover .result-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 32px;
+  margin-bottom: var(--sp-6);
+}
+#gameover .result-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-8);
+  width: 100%;
+  max-width: 280px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+}
+.stat-row .label { color: var(--text-muted); }
+
+/* ========================================
+   STATS SCREEN
+   ======================================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+}
+.stat-card .stat-value {
+  font-family: 'Space Mono', monospace;
+  font-size: 24px;
+  font-weight: 700;
+}
+.stat-card .stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--sp-1);
+}
+.streak-display {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: var(--sp-3);
+}
+.streak-dot {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.streak-dot.win { background: var(--faction-green); color: #000; }
+.streak-dot.loss { background: var(--faction-red); color: #fff; }
+
+/* ========================================
+   HOW TO PLAY SCREEN
+   ======================================== */
+.rules-section { margin-bottom: var(--sp-6); }
+.rules-section h3 {
+  font-size: 14px;
+  margin-bottom: var(--sp-3);
+  color: var(--text-secondary);
+}
+.rules-section p, .rules-section li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.rules-section ul { list-style: none; padding-left: var(--sp-4); }
+.rules-section li::before {
+  content: ">";
+  font-family: 'Space Mono', monospace;
+  color: var(--text-muted);
+  margin-right: var(--sp-2);
+}
+
+/* ========================================
+   SETTINGS SCREEN
+   ======================================== */
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.setting-label { font-size: 14px; }
+.setting-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.toggle {
+  width: 44px; height: 24px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--text-primary); border-color: var(--text-primary); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+.toggle.on::after { left: 22px; background: var(--bg-primary); }
+.speed-btns {
+  display: flex; gap: var(--sp-2);
+}
+.speed-btn {
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+.speed-btn.active { background: var(--text-primary); color: var(--bg-primary); border-color: var(--text-primary); }
+
+/* ========================================
+   AUTH SCREEN
+   ======================================== */
+#auth .auth-form {
+  max-width: 320px;
+  margin: 0 auto;
+  padding-top: var(--sp-10);
+}
+.auth-form h2 {
+  text-align: center;
+  margin-bottom: var(--sp-8);
+  font-size: 24px;
+}
+.form-group {
+  margin-bottom: var(--sp-4);
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-2);
+  font-family: 'Space Mono', monospace;
+}
+.auth-footer {
+  text-align: center;
+  margin-top: var(--sp-6);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.auth-footer a {
+  color: var(--text-primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ========================================
+   PAUSE OVERLAY
+   ======================================== */
+#pause-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#pause-overlay.active { display: flex; }
+#pause-overlay .pause-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 240px;
+}
+#pause-overlay h2 {
+  text-align: center;
+  margin-bottom: var(--sp-4);
+  font-size: 20px;
+}
+
+/* ========================================
+   ABOUT SCREEN
+   ======================================== */
+.about-section { margin-bottom: var(--sp-6); }
+.about-section h3 {
+  font-size: 14px;
+  margin-bottom: var(--sp-2);
+}
+.about-section p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ========================================
+   CONFIRM DIALOG
+   ======================================== */
+#confirm-dialog {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#confirm-dialog.active { display: flex; }
+#confirm-dialog .dialog-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--sp-6);
+  max-width: 280px;
+  text-align: center;
+}
+#confirm-dialog .dialog-msg {
+  font-size: 14px;
+  margin-bottom: var(--sp-6);
+}
+#confirm-dialog .dialog-btns {
+  display: flex;
+  gap: var(--sp-3);
+}
+#confirm-dialog .dialog-btns .btn { flex: 1; }
+
+/* ========================================
+   OFFLINE INDICATOR
+   ======================================== */
+#offline-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: var(--accent);
+  color: #fff;
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 2px;
+  z-index: 300;
+  display: none;
+}
+#offline-bar.active { display: block; }
+
+/* ========================================
+   COMBAT LOG TOAST
+   ======================================== */
+#combat-log {
+  position: absolute;
+  bottom: 60px; left: var(--sp-4); right: var(--sp-4);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  z-index: 50;
+}
+#combat-log.visible { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="offline-bar">OFFLINE</div>
+
+<!-- SPLASH -->
+<div id="splash" class="screen active">
+  <div class="logo">ONW</div>
+  <div class="subtitle">OPEN NETWORK WARS</div>
+  <div class="loader"><div class="loader-bar" id="loader-bar"></div></div>
+</div>
+
+<!-- AUTH -->
+<div id="auth" class="screen">
+  <div class="auth-form">
+    <h2>ONW</h2>
+    <div class="form-group">
+      <label>USERNAME</label>
+      <input class="input" id="auth-user" type="text" autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="form-group">
+      <label>PASSWORD</label>
+      <input class="input" id="auth-pass" type="password" autocomplete="current-password">
+    </div>
+    <div id="auth-error" style="color:var(--accent);font-size:12px;margin-bottom:var(--sp-3);display:none;font-family:'Space Mono',monospace;"></div>
+    <button class="btn btn--primary btn--wide" id="auth-login-btn">LOGIN</button>
+    <div style="height:var(--sp-3)"></div>
+    <button class="btn btn--wide" id="auth-register-btn">REGISTER</button>
+    <div class="auth-footer">
+      <a id="auth-guest-btn">CONTINUE AS GUEST</a>
+    </div>
+  </div>
+</div>
+
+<!-- MENU -->
+<div id="menu" class="screen">
+  <div class="menu-title">ONW</div>
+  <div class="menu-game-num" id="menu-game-num">GAME #1</div>
+  <div class="menu-buttons">
+    <button class="btn btn--primary btn--wide" id="btn-play">PLAY</button>
+    <button class="btn btn--wide" id="btn-stats">STATISTICS</button>
+    <button class="btn btn--wide" id="btn-howto">HOW TO PLAY</button>
+    <button class="btn btn--wide" id="btn-settings">SETTINGS</button>
+    <button class="btn btn--wide" id="btn-about">ABOUT</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen">
+  <div id="game-hud">
+    <div class="faction-indicators" id="faction-indicators"></div>
+    <button class="btn btn--sm" id="btn-pause">| |</button>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="gameCanvas"></canvas>
+    <div id="combat-log"></div>
+  </div>
+  <div id="game-footer">
+    <div id="turn-info">YOUR TURN</div>
+    <button class="btn btn--sm" id="btn-end-turn">END TURN</button>
+  </div>
+  <div id="pause-overlay">
+    <div>
+      <h2>PAUSED</h2>
+      <div class="pause-menu">
+        <button class="btn btn--wide" id="btn-resume">RESUME</button>
+        <button class="btn btn--wide" id="btn-pause-settings">SETTINGS</button>
+        <button class="btn btn--danger btn--wide" id="btn-quit">QUIT TO MENU</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover" class="screen">
+  <div class="result-title" id="result-title">VICTORY</div>
+  <div class="result-stats" id="result-stats"></div>
+  <div style="display:flex;flex-direction:column;gap:var(--sp-3);width:100%;max-width:280px;">
+    <button class="btn btn--primary btn--wide" id="btn-next-game">NEXT GAME</button>
+    <button class="btn btn--wide" id="btn-gameover-menu">MAIN MENU</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="stats" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" data-back="menu">&larr;</button>
+    <h2>STATISTICS</h2>
+  </div>
+  <div class="screen-content">
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="card">
+      <h3 style="font-size:13px;margin-bottom:var(--sp-3);">RECENT GAMES</h3>
+      <div class="streak-display" id="streak-display"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW TO PLAY -->
+<div id="howto" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" data-back="menu">&larr;</button>
+    <h2>HOW TO PLAY</h2>
+  </div>
+  <div class="screen-content">
+    <div class="rules-section">
+      <h3>OBJECTIVE</h3>
+      <p>Capture 24 or more nodes to win. You control the Red faction against 4 AI opponents.</p>
+    </div>
+    <div class="rules-section">
+      <h3>YOUR TURN</h3>
+      <ul>
+        <li>Tap one of your nodes with strength 2 or more</li>
+        <li>Tap a connected enemy node to attack</li>
+        <li>Attack as many times as you want</li>
+        <li>Press END TURN when finished</li>
+      </ul>
+    </div>
+    <div class="rules-section">
+      <h3>COMBAT</h3>
+      <p>When attacking, all units except 1 are committed. Each round, the attacker has a 52% chance of winning. The loser of each round loses 1 unit. Combat continues until one side is eliminated.</p>
+    </div>
+    <div class="rules-section">
+      <h3>REINFORCEMENTS</h3>
+      <p>At the end of your turn, your largest connected group of nodes generates reinforcements equal to its size. These are distributed evenly among your frontline nodes (nodes adjacent to enemies).</p>
+    </div>
+    <div class="rules-section">
+      <h3>TIPS</h3>
+      <ul>
+        <li>Keep your nodes connected for maximum reinforcements</li>
+        <li>Attack weaker nodes for safer captures</li>
+        <li>Don't overextend &mdash; isolated nodes get no reinforcements</li>
+        <li>Watch the AI &mdash; they target your weakest border nodes</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" data-back="menu">&larr;</button>
+    <h2>SETTINGS</h2>
+  </div>
+  <div class="screen-content">
+    <div class="setting-item">
+      <div>
+        <div class="setting-label">Animation Speed</div>
+        <div class="setting-desc">Speed of combat and AI animations</div>
+      </div>
+      <div class="speed-btns" id="speed-btns">
+        <button class="speed-btn" data-speed="0">OFF</button>
+        <button class="speed-btn active" data-speed="1">1x</button>
+        <button class="speed-btn" data-speed="2">2x</button>
+        <button class="speed-btn" data-speed="3">3x</button>
+      </div>
+    </div>
+    <div class="setting-item">
+      <div>
+        <div class="setting-label">Colorblind Mode</div>
+        <div class="setting-desc">Alternative color palette</div>
+      </div>
+      <div class="toggle" id="toggle-colorblind"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div id="about" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" data-back="menu">&larr;</button>
+    <h2>ABOUT</h2>
+  </div>
+  <div class="screen-content">
+    <div class="about-section">
+      <h3>OPEN NETWORK WARS</h3>
+      <p>A strategic network conquest game. Capture nodes, defeat AI factions, and dominate the network.</p>
+    </div>
+    <div class="about-section">
+      <h3>VERSION</h3>
+      <p>1.0.0 &mdash; PWA Edition</p>
+    </div>
+    <div class="about-section">
+      <h3>CREDITS</h3>
+      <p>Original game idea by <a href="https://jimrutt.com" target="_blank" rel="noopener" style="color:var(--text-primary)">Jim Rutt</a>. Learn more at <a href="https://networkwars.com" target="_blank" rel="noopener" style="color:var(--text-primary)">networkwars.com</a>.</p>
+      <p style="margin-top:var(--sp-3)">All code written by <a href="https://claude.ai" target="_blank" rel="noopener" style="color:var(--text-primary)">Claude Code</a>, prompted by <a href="https://criss.dev" target="_blank" rel="noopener" style="color:var(--text-primary)">Cristian Serb</a>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-dialog">
+  <div class="dialog-box">
+    <div class="dialog-msg" id="confirm-msg">Are you sure?</div>
+    <div class="dialog-btns">
+      <button class="btn btn--sm" id="confirm-no">CANCEL</button>
+      <button class="btn btn--sm btn--danger" id="confirm-yes">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<!-- GUN.JS -->
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+
+<script>
+'use strict';
+/* ================================================================
+   ONW - OPEN NETWORK WARS
+   Complete game engine in a single script block
+   ================================================================ */
+
+/* ========================================
+   CONSTANTS
+   ======================================== */
+const C = Object.freeze({
+  GRID_COLS: 6,
+  GRID_ROWS: 7,
+  TOTAL_NODES: 30,
+  NODES_PER_FACTION: 6,
+  STRENGTH_PER_FACTION: 20,
+  FACTION_COUNT: 5,
+  VICTORY_THRESHOLD: 24,
+  ATTACKER_WIN_CHANCE: 0.52,
+  MIN_ATTACK_STRENGTH: 2,
+  UNITS_LEFT_BEHIND: 1,
+  SECRET_BASE_SEED: 'ONW_PWA_SEED_v1'
+});
+
+/* ========================================
+   FACTION
+   ======================================== */
+const Faction = Object.freeze({
+  RED: 0, BLUE: 1, GREEN: 2, YELLOW: 3, PURPLE: 4, UNOWNED: 5,
+  NAMES: ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Unowned'],
+  COLORS: ['#E53935', '#1E88E5', '#43A047', '#FDD835', '#8E24AA', '#404040'],
+  CB_COLORS: ['#D55E00', '#0072B2', '#009E73', '#F0E442', '#CC79A7', '#404040'],
+  PLAYER: 0,
+  TURN_ORDER: [0, 1, 2, 3, 4]
+});
+
+/* ========================================
+   SEEDED PRNG (mulberry32)
+   ======================================== */
+class PRNG {
+  constructor(seed) {
+    this.state = seed >>> 0;
+  }
+  next() {
+    this.state |= 0;
+    this.state = this.state + 0x6D2B79F5 | 0;
+    let t = Math.imul(this.state ^ (this.state >>> 15), 1 | this.state);
+    t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  nextInt(min, max) {
+    return min + Math.floor(this.next() * (max - min + 1));
+  }
+  shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(this.next() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+}
+
+class SeedManager {
+  static hashSeed(gameNumber) {
+    const str = C.SECRET_BASE_SEED + ':' + gameNumber;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return hash >>> 0;
+  }
+  static createRNG(gameNumber) {
+    return new PRNG(SeedManager.hashSeed(gameNumber));
+  }
+}
+
+/* ========================================
+   NODE DATA
+   ======================================== */
+class NodeData {
+  constructor(id, gridX, gridY) {
+    this.id = id;
+    this.gridX = gridX;
+    this.gridY = gridY;
+    this.faction = Faction.UNOWNED;
+    this.strength = 0;
+    this.connections = [];
+  }
+  isConnectedTo(otherId) {
+    return this.connections.includes(otherId);
+  }
+}
+
+/* ========================================
+   GAME STATE
+   ======================================== */
+class GameState {
+  constructor() {
+    this.nodes = new Map();
+    this.currentTurn = Faction.RED;
+    this.gameNumber = 1;
+    this.isGameOver = false;
+    this.eliminatedFactions = new Set();
+    this.fractions = new Array(C.FACTION_COUNT).fill(0);
+  }
+  getNodesForFaction(faction) {
+    return [...this.nodes.values()].filter(n => n.faction === faction);
+  }
+  countNodes(faction) {
+    let c = 0;
+    for (const n of this.nodes.values()) if (n.faction === faction) c++;
+    return c;
+  }
+  totalStrength(faction) {
+    let s = 0;
+    for (const n of this.nodes.values()) if (n.faction === faction) s += n.strength;
+    return s;
+  }
+}
+
+/* ========================================
+   COMBAT RESULT
+   ======================================== */
+class CombatResult {
+  constructor() {
+    this.attackerWon = false;
+    this.attackerRemaining = 0;
+    this.defenderRemaining = 0;
+    this.rounds = [];
+  }
+}
+
+/* ========================================
+   NETWORK GENERATOR
+   ======================================== */
+class NetworkGenerator {
+  static generate(rng) {
+    const state = new GameState();
+    // Place 30 nodes on 6x7 grid
+    const allPositions = [];
+    for (let y = 0; y < C.GRID_ROWS; y++)
+      for (let x = 0; x < C.GRID_COLS; x++)
+        allPositions.push({ x, y });
+
+    const shuffled = rng.shuffle(allPositions);
+    const chosen = shuffled.slice(0, C.TOTAL_NODES);
+
+    // Create nodes
+    for (let i = 0; i < chosen.length; i++) {
+      const node = new NodeData(i, chosen[i].x, chosen[i].y);
+      state.nodes.set(i, node);
+    }
+
+    // Create connections (orthogonal + diagonal)
+    const posMap = new Map();
+    for (const [id, node] of state.nodes) {
+      posMap.set(`${node.gridX},${node.gridY}`, id);
+    }
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
+    for (const [id, node] of state.nodes) {
+      for (const [dx, dy] of dirs) {
+        const key = `${node.gridX + dx},${node.gridY + dy}`;
+        if (posMap.has(key)) {
+          const otherId = posMap.get(key);
+          if (!node.connections.includes(otherId)) {
+            node.connections.push(otherId);
+            state.nodes.get(otherId).connections.push(id);
+          }
+        }
+      }
+    }
+
+    // Ensure connectivity: nodes with 0 connections get connected to nearest node
+    for (const [id, node] of state.nodes) {
+      if (node.connections.length === 0) {
+        let bestId = -1, bestDist = Infinity;
+        for (const [oid, other] of state.nodes) {
+          if (oid === id) continue;
+          const dist = Math.abs(node.gridX - other.gridX) + Math.abs(node.gridY - other.gridY);
+          if (dist < bestDist) { bestDist = dist; bestId = oid; }
+        }
+        if (bestId >= 0) {
+          node.connections.push(bestId);
+          state.nodes.get(bestId).connections.push(id);
+        }
+      }
+    }
+
+    // Assign factions
+    const nodeIds = rng.shuffle([...state.nodes.keys()]);
+    for (let f = 0; f < C.FACTION_COUNT; f++) {
+      const start = f * C.NODES_PER_FACTION;
+      for (let i = start; i < start + C.NODES_PER_FACTION; i++) {
+        state.nodes.get(nodeIds[i]).faction = f;
+      }
+    }
+
+    // Distribute strength
+    for (let f = 0; f < C.FACTION_COUNT; f++) {
+      const factionNodes = nodeIds.slice(f * C.NODES_PER_FACTION, (f + 1) * C.NODES_PER_FACTION);
+      // Give each node minimum 1
+      for (const nid of factionNodes) {
+        state.nodes.get(nid).strength = 1;
+      }
+      // Distribute remaining randomly
+      let remaining = C.STRENGTH_PER_FACTION - C.NODES_PER_FACTION;
+      while (remaining > 0) {
+        const target = factionNodes[Math.floor(rng.next() * factionNodes.length)];
+        state.nodes.get(target).strength++;
+        remaining--;
+      }
+    }
+
+    return state;
+  }
+}
+
+/* ========================================
+   COMBAT RESOLVER
+   ======================================== */
+class CombatResolver {
+  static resolve(attackerStrength, defenderStrength, rng) {
+    const result = new CombatResult();
+    let atk = attackerStrength - C.UNITS_LEFT_BEHIND;
+    let def = defenderStrength;
+
+    while (atk > 0 && def > 0) {
+      const roll = rng.next();
+      if (roll < C.ATTACKER_WIN_CHANCE) {
+        def--;
+        result.rounds.push({ attackerWins: true, atk, def });
+      } else {
+        atk--;
+        result.rounds.push({ attackerWins: false, atk, def });
+      }
+    }
+
+    result.attackerWon = def === 0;
+    result.attackerRemaining = atk;
+    result.defenderRemaining = def;
+    return result;
+  }
+}
+
+/* ========================================
+   CHAIN CALCULATOR (BFS)
+   ======================================== */
+class ChainCalculator {
+  static findLargestCluster(faction, state) {
+    const factionNodeIds = new Set();
+    for (const [id, node] of state.nodes) {
+      if (node.faction === faction) factionNodeIds.add(id);
+    }
+
+    const visited = new Set();
+    let largestCluster = [];
+
+    for (const startId of factionNodeIds) {
+      if (visited.has(startId)) continue;
+      const cluster = [];
+      const queue = [startId];
+      visited.add(startId);
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        cluster.push(current);
+        const node = state.nodes.get(current);
+        for (const conn of node.connections) {
+          if (factionNodeIds.has(conn) && !visited.has(conn)) {
+            visited.add(conn);
+            queue.push(conn);
+          }
+        }
+      }
+
+      if (cluster.length > largestCluster.length) {
+        largestCluster = cluster;
+      }
+    }
+
+    return largestCluster;
+  }
+}
+
+/* ========================================
+   FRONTLINE DETECTOR
+   ======================================== */
+class FrontlineDetector {
+  static getFrontlineNodes(faction, state, clusterIds) {
+    const clusterSet = new Set(clusterIds);
+    const frontline = [];
+
+    for (const id of clusterIds) {
+      const node = state.nodes.get(id);
+      for (const conn of node.connections) {
+        const neighbor = state.nodes.get(conn);
+        if (neighbor.faction !== faction && neighbor.faction !== Faction.UNOWNED) {
+          frontline.push(id);
+          break;
+        }
+      }
+    }
+
+    return frontline;
+  }
+}
+
+/* ========================================
+   REINFORCEMENT MANAGER
+   ======================================== */
+class ReinforcementManager {
+  static apply(faction, state) {
+    const cluster = ChainCalculator.findLargestCluster(faction, state);
+    if (cluster.length === 0) return { reinforced: [], total: 0 };
+
+    const frontline = FrontlineDetector.getFrontlineNodes(faction, state, cluster);
+    if (frontline.length === 0) return { reinforced: [], total: 0 };
+
+    const rawTotal = cluster.length + state.fractions[faction];
+    const perNode = Math.floor(rawTotal / frontline.length);
+    const remainder = rawTotal - (perNode * frontline.length);
+    state.fractions[faction] = remainder;
+
+    const reinforced = [];
+    for (const id of frontline) {
+      if (perNode > 0) {
+        state.nodes.get(id).strength += perNode;
+        reinforced.push({ id, amount: perNode });
+      }
+    }
+
+    return { reinforced, total: perNode * frontline.length };
+  }
+}
+
+/* ========================================
+   VICTORY CHECKER
+   ======================================== */
+class VictoryChecker {
+  static check(state) {
+    for (let f = 0; f < C.FACTION_COUNT; f++) {
+      if (state.countNodes(f) >= C.VICTORY_THRESHOLD) {
+        return { gameOver: true, winner: f };
+      }
+    }
+    // Check player elimination
+    if (state.countNodes(Faction.PLAYER) === 0) {
+      return { gameOver: true, winner: -1 }; // -1 = player lost
+    }
+    return { gameOver: false, winner: null };
+  }
+
+  static updateEliminations(state) {
+    for (let f = 0; f < C.FACTION_COUNT; f++) {
+      if (state.countNodes(f) === 0) {
+        state.eliminatedFactions.add(f);
+      }
+    }
+  }
+}
+
+/* ========================================
+   AI CONTROLLER
+   ======================================== */
+class AIController {
+  static async executeTurn(faction, state, rng, onAttack) {
+    const tried = new Set(); // Track nodes that have been fully exhausted
+
+    while (true) {
+      // Find all nodes that can still attack
+      const ownedNodes = state.getNodesForFaction(faction)
+        .filter(n => n.strength >= C.MIN_ATTACK_STRENGTH && !tried.has(n.id));
+
+      if (ownedNodes.length === 0) break;
+
+      // Pick strongest node to attack from (random tie-break)
+      ownedNodes.sort((a, b) => b.strength - a.strength);
+      const maxStr = ownedNodes[0].strength;
+      const candidates = rng.shuffle(ownedNodes.filter(n => n.strength === maxStr));
+      const attacker = candidates[0];
+
+      let didAttack = false;
+
+      // Chain attack from this node until depleted or no valid targets
+      while (attacker.strength >= C.MIN_ATTACK_STRENGTH) {
+        // Find valid targets: adjacent enemies weaker than attacker
+        const targets = [];
+        for (const connId of attacker.connections) {
+          const target = state.nodes.get(connId);
+          if (target.faction !== faction && target.faction !== Faction.UNOWNED &&
+              target.strength < attacker.strength) {
+            targets.push(target);
+          }
+        }
+        if (targets.length === 0) break;
+
+        // Attack weakest, random tie-break
+        targets.sort((a, b) => a.strength - b.strength);
+        const minStr = targets[0].strength;
+        const weakest = rng.shuffle(targets.filter(t => t.strength === minStr));
+        const defender = weakest[0];
+
+        // Execute combat
+        const result = CombatResolver.resolve(attacker.strength, defender.strength, rng);
+
+        if (result.attackerWon) {
+          attacker.strength = C.UNITS_LEFT_BEHIND;
+          defender.faction = faction;
+          defender.strength = result.attackerRemaining;
+        } else {
+          attacker.strength = C.UNITS_LEFT_BEHIND;
+          defender.strength = result.defenderRemaining;
+        }
+
+        didAttack = true;
+        if (onAttack) await onAttack(attacker.id, defender.id, result);
+
+        if (state.isGameOver) return;
+        const vc = VictoryChecker.check(state);
+        if (vc.gameOver) return;
+
+        VictoryChecker.updateEliminations(state);
+      }
+
+      // Mark this node as exhausted so we don't pick it again
+      tried.add(attacker.id);
+
+      // If no node managed to attack, no further attacks are possible
+      if (!didAttack && tried.size >= ownedNodes.length + tried.size) break;
+    }
+  }
+}
+
+/* ========================================
+   LAYOUT / CANVAS RENDERER
+   ======================================== */
+class Renderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.nodeRadius = 20;
+    this.margins = { top: 30, bottom: 30, left: 30, right: 30 };
+    this.selectedNode = null;
+    this.validTargets = new Set();
+    this.attackPath = null;
+    this.floatingTexts = [];
+    this.colorblind = false;
+    this.dirty = true;
+  }
+
+  resize() {
+    const wrap = this.canvas.parentElement;
+    const dpr = window.devicePixelRatio || 1;
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    this.canvas.width = w * dpr;
+    this.canvas.height = h * dpr;
+    this.canvas.style.width = w + 'px';
+    this.canvas.style.height = h + 'px';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.displayWidth = w;
+    this.displayHeight = h;
+    this.dirty = true;
+  }
+
+  gridToScreen(gridX, gridY) {
+    const usableW = this.displayWidth - this.margins.left - this.margins.right;
+    const usableH = this.displayHeight - this.margins.top - this.margins.bottom;
+    const cellW = usableW / (C.GRID_COLS - 1);
+    const cellH = usableH / (C.GRID_ROWS - 1);
+    return {
+      x: this.margins.left + gridX * cellW,
+      y: this.margins.top + gridY * cellH
+    };
+  }
+
+  screenToGrid(sx, sy) {
+    const usableW = this.displayWidth - this.margins.left - this.margins.right;
+    const usableH = this.displayHeight - this.margins.top - this.margins.bottom;
+    const cellW = usableW / (C.GRID_COLS - 1);
+    const cellH = usableH / (C.GRID_ROWS - 1);
+    return {
+      x: (sx - this.margins.left) / cellW,
+      y: (sy - this.margins.top) / cellH
+    };
+  }
+
+  hitTest(sx, sy, state) {
+    let bestId = -1, bestDist = Infinity;
+    const hitRadius = this.nodeRadius * 1.5;
+    for (const [id, node] of state.nodes) {
+      const pos = this.gridToScreen(node.gridX, node.gridY);
+      const dx = sx - pos.x, dy = sy - pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < hitRadius && dist < bestDist) {
+        bestDist = dist;
+        bestId = id;
+      }
+    }
+    return bestId;
+  }
+
+  getColor(faction) {
+    if (this.colorblind) return Faction.CB_COLORS[faction];
+    return Faction.COLORS[faction];
+  }
+
+  draw(state) {
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
+
+    // Draw dot pattern background
+    ctx.fillStyle = '#111111';
+    for (let x = 0; x < this.displayWidth; x += 16) {
+      for (let y = 0; y < this.displayHeight; y += 16) {
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    // Draw links
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#333333';
+    const drawnLinks = new Set();
+    for (const [id, node] of state.nodes) {
+      const posA = this.gridToScreen(node.gridX, node.gridY);
+      for (const connId of node.connections) {
+        const key = Math.min(id, connId) + ',' + Math.max(id, connId);
+        if (drawnLinks.has(key)) continue;
+        drawnLinks.add(key);
+        const other = state.nodes.get(connId);
+        const posB = this.gridToScreen(other.gridX, other.gridY);
+        ctx.beginPath();
+        ctx.moveTo(posA.x, posA.y);
+        ctx.lineTo(posB.x, posB.y);
+        ctx.stroke();
+      }
+    }
+
+    // Draw attack path
+    if (this.attackPath) {
+      const a = this.gridToScreen(this.attackPath.from.gridX, this.attackPath.from.gridY);
+      const b = this.gridToScreen(this.attackPath.to.gridX, this.attackPath.to.gridY);
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Draw nodes
+    for (const [id, node] of state.nodes) {
+      const pos = this.gridToScreen(node.gridX, node.gridY);
+      const isSelected = this.selectedNode === id;
+      const isTarget = this.validTargets.has(id);
+      const r = isSelected ? this.nodeRadius * 1.15 : this.nodeRadius;
+
+      // Node circle
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = this.getColor(node.faction);
+      ctx.fill();
+
+      // Border
+      if (isSelected) {
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      } else if (isTarget) {
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // Strength text
+      ctx.fillStyle = node.faction === Faction.YELLOW ? '#000000' : '#FFFFFF';
+      ctx.font = "bold 13px 'Space Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(node.strength, pos.x, pos.y);
+    }
+
+    // Draw floating texts
+    const now = Date.now();
+    this.floatingTexts = this.floatingTexts.filter(ft => {
+      const elapsed = now - ft.start;
+      if (elapsed > 1200) return false;
+      const alpha = 1 - (elapsed / 1200);
+      const offsetY = -elapsed * 0.03;
+      const pos = this.gridToScreen(ft.gridX, ft.gridY);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#43A047';
+      ctx.font = "bold 14px 'Space Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.fillText('+' + ft.amount, pos.x, pos.y - this.nodeRadius - 10 + offsetY);
+      ctx.globalAlpha = 1;
+      return true;
+    });
+
+    this.dirty = false;
+  }
+
+  addFloatingText(gridX, gridY, amount) {
+    this.floatingTexts.push({ gridX, gridY, amount, start: Date.now() });
+    this.dirty = true;
+  }
+}
+
+/* ========================================
+   SETTINGS MANAGER
+   ======================================== */
+class SettingsManager {
+  constructor() {
+    this.animationSpeed = 1; // 0=off, 1=1x, 2=2x, 3=3x
+    this.colorblindMode = false;
+    this.load();
+  }
+
+  get delayMs() {
+    return [0, 400, 200, 100][this.animationSpeed] || 400;
+  }
+
+  load() {
+    try {
+      const data = JSON.parse(localStorage.getItem('onw_settings') || '{}');
+      if (data.animationSpeed !== undefined) this.animationSpeed = data.animationSpeed;
+      if (data.colorblindMode !== undefined) this.colorblindMode = data.colorblindMode;
+    } catch (e) {}
+  }
+
+  save() {
+    localStorage.setItem('onw_settings', JSON.stringify({
+      animationSpeed: this.animationSpeed,
+      colorblindMode: this.colorblindMode
+    }));
+  }
+}
+
+/* ========================================
+   STATS MANAGER
+   ======================================== */
+class StatsManager {
+  constructor() {
+    this.currentGame = 1;
+    this.wins = 0;
+    this.losses = 0;
+    this.history = []; // last 100 results: 1=win, 0=loss
+    this.load();
+  }
+
+  get winRate() {
+    const total = this.wins + this.losses;
+    return total === 0 ? 0 : Math.round((this.wins / total) * 100);
+  }
+
+  streak(n) {
+    return this.history.slice(-n);
+  }
+
+  recordResult(won) {
+    if (won) this.wins++; else this.losses++;
+    this.history.push(won ? 1 : 0);
+    if (this.history.length > 100) this.history.shift();
+    this.currentGame++;
+    this.save();
+  }
+
+  load() {
+    try {
+      const data = JSON.parse(localStorage.getItem('onw_stats') || '{}');
+      if (data.currentGame) this.currentGame = data.currentGame;
+      if (data.wins) this.wins = data.wins;
+      if (data.losses) this.losses = data.losses;
+      if (data.history) this.history = data.history;
+    } catch (e) {}
+  }
+
+  save() {
+    localStorage.setItem('onw_stats', JSON.stringify({
+      currentGame: this.currentGame,
+      wins: this.wins,
+      losses: this.losses,
+      history: this.history
+    }));
+  }
+}
+
+/* ========================================
+   GUN.JS INTEGRATION
+   ======================================== */
+class GunSync {
+  constructor() {
+    this.gun = null;
+    this.user = null;
+    this.isGuest = true;
+    this.initialized = false;
+  }
+
+  init() {
+    try {
+      this.gun = Gun({ peers: ['https://gun-manhattan.herokuapp.com/gun'], localStorage: true, radisk: false });
+      this.user = this.gun.user().recall({ sessionStorage: true });
+      this.initialized = true;
+    } catch (e) {
+      console.warn('Gun.js init failed, using local storage only');
+    }
+  }
+
+  async login(username, password) {
+    return new Promise((resolve, reject) => {
+      if (!this.gun) return reject(new Error('Gun not initialized'));
+      this.user.auth(username, password, ack => {
+        if (ack.err) reject(new Error(ack.err));
+        else { this.isGuest = false; resolve(ack); }
+      });
+    });
+  }
+
+  async register(username, password) {
+    return new Promise((resolve, reject) => {
+      if (!this.gun) return reject(new Error('Gun not initialized'));
+      this.user.create(username, password, ack => {
+        if (ack.err) reject(new Error(ack.err));
+        else resolve(ack);
+      });
+    });
+  }
+
+  syncStats(stats) {
+    if (this.isGuest || !this.user || !this.user.is) return;
+    try {
+      this.user.get('stats').put({
+        currentGame: stats.currentGame,
+        wins: stats.wins,
+        losses: stats.losses,
+        history: stats.history.join(',')
+      });
+    } catch (e) {}
+  }
+
+  loadStats(callback) {
+    if (this.isGuest || !this.user || !this.user.is) return;
+    try {
+      this.user.get('stats').once(data => {
+        if (data) callback(data);
+      });
+    } catch (e) {}
+  }
+
+  syncSettings(settings) {
+    if (this.isGuest || !this.user || !this.user.is) return;
+    try {
+      this.user.get('settings').put({
+        animationSpeed: settings.animationSpeed,
+        colorblindMode: settings.colorblindMode
+      });
+    } catch (e) {}
+  }
+}
+
+/* ========================================
+   GAME MANAGER (State Machine)
+   ======================================== */
+const GamePhase = Object.freeze({
+  SETUP: 'SETUP',
+  PLAYER_TURN: 'PLAYER_TURN',
+  AI_TURN: 'AI_TURN',
+  ANIMATING: 'ANIMATING',
+  GAME_OVER: 'GAME_OVER'
+});
+
+class GameManager {
+  constructor() {
+    this.state = null;
+    this.rng = null;
+    this.phase = GamePhase.SETUP;
+    this.renderer = null;
+    this.settings = new SettingsManager();
+    this.statsManager = new StatsManager();
+    this.gunSync = new GunSync();
+    this.animFrameId = null;
+    this.selectedNode = null;
+  }
+
+  init() {
+    const canvas = document.getElementById('gameCanvas');
+    this.renderer = new Renderer(canvas);
+    this.gunSync.init();
+    this.setupEvents();
+    this.setupUI();
+    this.startSplash();
+  }
+
+  startSplash() {
+    showScreen('splash');
+    const bar = document.getElementById('loader-bar');
+    requestAnimationFrame(() => { bar.style.width = '100%'; });
+    setTimeout(() => {
+      // Check if user has logged in before
+      if (this.gunSync.user && this.gunSync.user.is) {
+        this.gunSync.isGuest = false;
+        showScreen('menu');
+      } else {
+        showScreen('auth');
+      }
+      this.updateMenuGameNum();
+    }, 1000);
+  }
+
+  setupEvents() {
+    const canvas = this.renderer.canvas;
+
+    // Canvas input
+    const handleInput = (e) => {
+      if (this.phase !== GamePhase.PLAYER_TURN) return;
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      let clientX, clientY;
+      if (e.touches) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+      this.handleCanvasTap(sx, sy);
+    };
+
+    canvas.addEventListener('click', handleInput);
+    canvas.addEventListener('touchstart', handleInput, { passive: false });
+
+    // Resize
+    window.addEventListener('resize', () => {
+      if (this.renderer) {
+        this.renderer.resize();
+        if (this.state) this.renderer.draw(this.state);
+      }
+    });
+
+    // Buttons
+    document.getElementById('btn-play').onclick = () => this.startGame();
+    document.getElementById('btn-end-turn').onclick = () => this.endPlayerTurn();
+    document.getElementById('btn-pause').onclick = () => togglePause(true);
+    document.getElementById('btn-resume').onclick = () => togglePause(false);
+    document.getElementById('btn-pause-settings').onclick = () => {
+      togglePause(false);
+      showScreen('settings');
+      settingsBackTarget = 'game';
+    };
+    document.getElementById('btn-quit').onclick = () => {
+      showConfirm('Quit this game?', () => {
+        togglePause(false);
+        showScreen('menu');
+      });
+    };
+    document.getElementById('btn-next-game').onclick = () => this.startGame();
+    document.getElementById('btn-gameover-menu').onclick = () => showScreen('menu');
+    document.getElementById('btn-stats').onclick = () => { this.updateStatsScreen(); showScreen('stats'); };
+    document.getElementById('btn-howto').onclick = () => showScreen('howto');
+    document.getElementById('btn-settings').onclick = () => { settingsBackTarget = 'menu'; showScreen('settings'); };
+    document.getElementById('btn-about').onclick = () => showScreen('about');
+
+    // Auth
+    document.getElementById('auth-login-btn').onclick = () => this.handleAuth('login');
+    document.getElementById('auth-register-btn').onclick = () => this.handleAuth('register');
+    document.getElementById('auth-guest-btn').onclick = () => {
+      this.gunSync.isGuest = true;
+      showScreen('menu');
+      this.updateMenuGameNum();
+    };
+
+    // Back buttons
+    document.querySelectorAll('[data-back]').forEach(btn => {
+      btn.onclick = () => {
+        const isSettingsBack = btn.closest('#settings') !== null;
+        const target = (isSettingsBack && settingsBackTarget) ? settingsBackTarget : btn.dataset.back;
+        showScreen(target);
+        if (isSettingsBack) settingsBackTarget = null;
+      };
+    });
+
+    // Settings controls
+    document.querySelectorAll('#speed-btns .speed-btn').forEach(btn => {
+      btn.onclick = () => {
+        this.settings.animationSpeed = parseInt(btn.dataset.speed);
+        document.querySelectorAll('#speed-btns .speed-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.settings.save();
+        this.gunSync.syncSettings(this.settings);
+      };
+    });
+    document.getElementById('toggle-colorblind').onclick = (e) => {
+      const toggle = e.currentTarget;
+      this.settings.colorblindMode = !this.settings.colorblindMode;
+      toggle.classList.toggle('on', this.settings.colorblindMode);
+      if (this.renderer) this.renderer.colorblind = this.settings.colorblindMode;
+      this.settings.save();
+      this.gunSync.syncSettings(this.settings);
+      if (this.state) { this.renderer.dirty = true; this.renderer.draw(this.state); }
+    };
+
+    // Offline detection
+    window.addEventListener('online', () => document.getElementById('offline-bar').classList.remove('active'));
+    window.addEventListener('offline', () => document.getElementById('offline-bar').classList.add('active'));
+    if (!navigator.onLine) document.getElementById('offline-bar').classList.add('active');
+  }
+
+  setupUI() {
+    // Init settings UI
+    document.querySelectorAll('#speed-btns .speed-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.speed) === this.settings.animationSpeed);
+    });
+    document.getElementById('toggle-colorblind').classList.toggle('on', this.settings.colorblindMode);
+    this.renderer.colorblind = this.settings.colorblindMode;
+  }
+
+  updateMenuGameNum() {
+    document.getElementById('menu-game-num').textContent = `GAME #${this.statsManager.currentGame}`;
+  }
+
+  async handleAuth(mode) {
+    const user = document.getElementById('auth-user').value.trim();
+    const pass = document.getElementById('auth-pass').value;
+    const errEl = document.getElementById('auth-error');
+
+    if (!user || !pass) {
+      errEl.textContent = 'Enter username and password';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    errEl.style.display = 'none';
+    try {
+      if (mode === 'register') {
+        await this.gunSync.register(user, pass);
+        await this.gunSync.login(user, pass);
+      } else {
+        await this.gunSync.login(user, pass);
+      }
+      // Load cloud stats
+      this.gunSync.loadStats(data => {
+        if (data.currentGame) this.statsManager.currentGame = data.currentGame;
+        if (data.wins) this.statsManager.wins = data.wins;
+        if (data.losses) this.statsManager.losses = data.losses;
+        if (data.history && typeof data.history === 'string') {
+          this.statsManager.history = data.history.split(',').map(Number);
+        }
+        this.statsManager.save();
+        this.updateMenuGameNum();
+      });
+      showScreen('menu');
+      this.updateMenuGameNum();
+    } catch (e) {
+      errEl.textContent = e.message || 'Authentication failed';
+      errEl.style.display = 'block';
+    }
+  }
+
+  startGame() {
+    const gameNum = this.statsManager.currentGame;
+    this.rng = SeedManager.createRNG(gameNum);
+    this.state = NetworkGenerator.generate(this.rng);
+    this.state.gameNumber = gameNum;
+    this.phase = GamePhase.PLAYER_TURN;
+    this.selectedNode = null;
+    this.renderer.selectedNode = null;
+    this.renderer.validTargets.clear();
+    this.renderer.attackPath = null;
+    this.renderer.floatingTexts = [];
+
+    showScreen('game');
+    this.renderer.resize();
+    this.updateHUD();
+    this.startRenderLoop();
+  }
+
+  startRenderLoop() {
+    if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
+    const loop = () => {
+      if (this.renderer.dirty || this.renderer.floatingTexts.length > 0) {
+        this.renderer.draw(this.state);
+      }
+      this.animFrameId = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  stopRenderLoop() {
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+  }
+
+  updateHUD() {
+    const container = document.getElementById('faction-indicators');
+    container.innerHTML = '';
+    for (let f = 0; f < C.FACTION_COUNT; f++) {
+      const count = this.state.countNodes(f);
+      const el = document.createElement('div');
+      el.className = 'faction-ind';
+      if (f === this.state.currentTurn) el.classList.add('current-turn');
+      if (this.state.eliminatedFactions.has(f)) el.classList.add('eliminated');
+
+      const dot = document.createElement('div');
+      dot.className = 'faction-dot';
+      dot.style.background = this.renderer.getColor(f);
+      el.appendChild(dot);
+
+      const num = document.createElement('span');
+      num.textContent = count;
+      el.appendChild(num);
+
+      container.appendChild(el);
+    }
+
+    const turnInfo = document.getElementById('turn-info');
+    const endBtn = document.getElementById('btn-end-turn');
+    if (this.phase === GamePhase.PLAYER_TURN) {
+      turnInfo.textContent = 'YOUR TURN';
+      endBtn.disabled = false;
+    } else if (this.phase === GamePhase.AI_TURN) {
+      turnInfo.textContent = Faction.NAMES[this.state.currentTurn].toUpperCase() + ' TURN';
+      endBtn.disabled = true;
+    } else if (this.phase === GamePhase.ANIMATING) {
+      endBtn.disabled = true;
+    }
+  }
+
+  handleCanvasTap(sx, sy) {
+    if (this.phase !== GamePhase.PLAYER_TURN) return;
+
+    const hitId = this.renderer.hitTest(sx, sy, this.state);
+
+    if (hitId < 0) {
+      // Tap empty: deselect
+      this.deselectNode();
+      return;
+    }
+
+    const hitNode = this.state.nodes.get(hitId);
+
+    if (this.selectedNode !== null && this.renderer.validTargets.has(hitId)) {
+      // Attack!
+      this.executePlayerAttack(this.selectedNode, hitId);
+      return;
+    }
+
+    if (hitNode.faction === Faction.PLAYER && hitNode.strength >= C.MIN_ATTACK_STRENGTH) {
+      // Select own node
+      this.selectNode(hitId);
+    } else if (hitNode.faction === Faction.PLAYER) {
+      // Own node but too weak
+      this.deselectNode();
+    } else {
+      this.deselectNode();
+    }
+  }
+
+  selectNode(id) {
+    this.selectedNode = id;
+    this.renderer.selectedNode = id;
+    this.renderer.validTargets.clear();
+
+    const node = this.state.nodes.get(id);
+    for (const connId of node.connections) {
+      const neighbor = this.state.nodes.get(connId);
+      if (neighbor.faction !== Faction.PLAYER && neighbor.faction !== Faction.UNOWNED) {
+        this.renderer.validTargets.add(connId);
+      }
+    }
+
+    this.renderer.dirty = true;
+  }
+
+  deselectNode() {
+    this.selectedNode = null;
+    this.renderer.selectedNode = null;
+    this.renderer.validTargets.clear();
+    this.renderer.attackPath = null;
+    this.renderer.dirty = true;
+  }
+
+  async executePlayerAttack(attackerId, defenderId) {
+    const attacker = this.state.nodes.get(attackerId);
+    const defender = this.state.nodes.get(defenderId);
+
+    this.renderer.attackPath = { from: attacker, to: defender };
+    this.renderer.dirty = true;
+
+    this.phase = GamePhase.ANIMATING;
+    this.updateHUD();
+
+    const result = CombatResolver.resolve(attacker.strength, defender.strength, this.rng);
+
+    // Animate combat
+    if (this.settings.animationSpeed > 0) {
+      await this.animateCombat(attacker, defender, result);
+    }
+
+    // Apply result
+    if (result.attackerWon) {
+      attacker.strength = C.UNITS_LEFT_BEHIND;
+      defender.faction = Faction.PLAYER;
+      defender.strength = result.attackerRemaining;
+      showCombatLog(`Captured! ${result.attackerRemaining} units remain`);
+    } else {
+      attacker.strength = C.UNITS_LEFT_BEHIND;
+      defender.strength = result.defenderRemaining;
+      showCombatLog(`Repelled! Defender has ${result.defenderRemaining} units`);
+    }
+
+    this.renderer.attackPath = null;
+    this.renderer.dirty = true;
+
+    if (this.checkVictory()) return;
+
+    this.phase = GamePhase.PLAYER_TURN;
+    this.deselectNode();
+    this.updateHUD();
+  }
+
+  async animateCombat(attacker, defender, result) {
+    const delay = this.settings.delayMs;
+    let atkDisplay = attacker.strength - C.UNITS_LEFT_BEHIND;
+    let defDisplay = defender.strength;
+
+    for (const round of result.rounds) {
+      if (round.attackerWins) defDisplay--;
+      else atkDisplay--;
+
+      // Temporarily show mid-combat strengths
+      attacker.strength = atkDisplay + C.UNITS_LEFT_BEHIND;
+      defender.strength = defDisplay;
+      this.renderer.dirty = true;
+
+      await sleep(delay);
+    }
+  }
+
+  async endPlayerTurn() {
+    if (this.phase !== GamePhase.PLAYER_TURN) return;
+
+    this.deselectNode();
+    this.phase = GamePhase.ANIMATING;
+    this.updateHUD();
+
+    // Player reinforcements
+    const reinf = ReinforcementManager.apply(Faction.PLAYER, this.state);
+    for (const r of reinf.reinforced) {
+      const node = this.state.nodes.get(r.id);
+      this.renderer.addFloatingText(node.gridX, node.gridY, r.amount);
+    }
+    this.renderer.dirty = true;
+
+    if (this.settings.animationSpeed > 0) await sleep(this.settings.delayMs * 2);
+
+    // AI turns
+    for (const faction of Faction.TURN_ORDER) {
+      if (faction === Faction.PLAYER) continue;
+      if (this.state.eliminatedFactions.has(faction)) continue;
+
+      this.state.currentTurn = faction;
+      this.phase = GamePhase.AI_TURN;
+      this.updateHUD();
+
+      const delay = this.settings.delayMs;
+
+      await AIController.executeTurn(faction, this.state, this.rng, async (atkId, defId, result) => {
+        this.renderer.dirty = true;
+        this.updateHUD();
+        if (delay > 0) await sleep(delay);
+
+        this.checkVictory();
+      });
+
+      if (this.state.isGameOver) return;
+      if (this.checkVictory()) return;
+
+      // AI reinforcements
+      const aiReinf = ReinforcementManager.apply(faction, this.state);
+      for (const r of aiReinf.reinforced) {
+        const node = this.state.nodes.get(r.id);
+        this.renderer.addFloatingText(node.gridX, node.gridY, r.amount);
+      }
+      this.renderer.dirty = true;
+
+      if (delay > 0) await sleep(delay);
+    }
+
+    // Back to player
+    this.state.currentTurn = Faction.PLAYER;
+    this.phase = GamePhase.PLAYER_TURN;
+    this.updateHUD();
+
+    this.checkVictory();
+  }
+
+  checkVictory() {
+    VictoryChecker.updateEliminations(this.state);
+    const vc = VictoryChecker.check(this.state);
+    if (vc.gameOver) {
+      this.endGame(vc.winner === Faction.PLAYER);
+      return true;
+    }
+    return false;
+  }
+
+  endGame(playerWon) {
+    this.phase = GamePhase.GAME_OVER;
+    this.state.isGameOver = true;
+    this.stopRenderLoop();
+
+    // Record stats
+    this.statsManager.recordResult(playerWon);
+    this.gunSync.syncStats(this.statsManager);
+    this.updateMenuGameNum();
+
+    // Show game over screen
+    document.getElementById('result-title').textContent = playerWon ? 'VICTORY' : 'DEFEAT';
+    document.getElementById('result-title').style.color = playerWon ? '#43A047' : '#E53935';
+
+    const statsContainer = document.getElementById('result-stats');
+    statsContainer.innerHTML = `
+      <div class="stat-row"><span class="label">GAME</span><span>#${this.state.gameNumber}</span></div>
+      <div class="stat-row"><span class="label">NODES</span><span>${this.state.countNodes(Faction.PLAYER)} / ${C.TOTAL_NODES}</span></div>
+      <div class="stat-row"><span class="label">TOTAL WINS</span><span>${this.statsManager.wins}</span></div>
+      <div class="stat-row"><span class="label">WIN RATE</span><span>${this.statsManager.winRate}%</span></div>
+    `;
+
+    showScreen('gameover');
+  }
+
+  updateStatsScreen() {
+    const grid = document.getElementById('stats-grid');
+    grid.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-value">${this.statsManager.wins}</div>
+        <div class="stat-label">WINS</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${this.statsManager.losses}</div>
+        <div class="stat-label">LOSSES</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${this.statsManager.winRate}%</div>
+        <div class="stat-label">WIN RATE</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">#${this.statsManager.currentGame}</div>
+        <div class="stat-label">NEXT GAME</div>
+      </div>
+    `;
+
+    const streakEl = document.getElementById('streak-display');
+
+    // Show streak breakdowns for 10/20/50/100
+    const breakdowns = [10, 20, 50, 100];
+    let streakHTML = '';
+    for (const n of breakdowns) {
+      const s = this.statsManager.streak(n);
+      const wins = s.filter(r => r === 1).length;
+      const total = s.length;
+      if (total === 0) continue;
+      streakHTML += `<div style="margin-bottom:var(--sp-4);">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:var(--sp-2);">LAST ${n} (${wins}/${total} wins)</div>
+        <div class="streak-display">${s.map(r =>
+          `<div class="streak-dot ${r ? 'win' : 'loss'}">${r ? 'W' : 'L'}</div>`
+        ).join('')}</div>
+      </div>`;
+    }
+
+    if (!streakHTML) {
+      streakEl.innerHTML = '<span style="color:var(--text-muted);font-size:12px;">No games played yet</span>';
+    } else {
+      streakEl.innerHTML = streakHTML;
+    }
+  }
+}
+
+/* ========================================
+   UI HELPERS
+   ======================================== */
+let settingsBackTarget = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById(id);
+  if (screen) screen.classList.add('active');
+}
+
+function togglePause(show) {
+  document.getElementById('pause-overlay').classList.toggle('active', show);
+}
+
+function showCombatLog(msg) {
+  const el = document.getElementById('combat-log');
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('visible'), 2000);
+}
+
+let confirmCallback = null;
+function showConfirm(msg, onYes) {
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-dialog').classList.add('active');
+  confirmCallback = onYes;
+}
+document.getElementById('confirm-yes').onclick = () => {
+  document.getElementById('confirm-dialog').classList.remove('active');
+  if (confirmCallback) confirmCallback();
+  confirmCallback = null;
+};
+document.getElementById('confirm-no').onclick = () => {
+  document.getElementById('confirm-dialog').classList.remove('active');
+  confirmCallback = null;
+};
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+/* ========================================
+   SERVICE WORKER REGISTRATION
+   ======================================== */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW registration failed:', e));
+}
+
+/* ========================================
+   BOOT
+   ======================================== */
+const game = new GameManager();
+game.init();
+</script>
+</body>
+</html>
