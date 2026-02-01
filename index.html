@@ -1603,13 +1603,7 @@ class GameManager {
     const bar = document.getElementById('loader-bar');
     requestAnimationFrame(() => { bar.style.width = '100%'; });
     setTimeout(() => {
-      // Check if user has logged in before
-      if (this.gunSync.user && this.gunSync.user.is) {
-        this.gunSync.isGuest = false;
-        showScreen('menu');
-      } else {
-        showScreen('auth');
-      }
+      showScreen('menu');
       this.updateMenuGameNum();
     }, 1000);
   }
