@@ -1072,13 +1072,13 @@ class NetworkGenerator {
    COMBAT RESOLVER
    ======================================== */
 class CombatResolver {
-  static resolve(attackerStrength, defenderStrength, rng) {
+  static resolve(attackerStrength, defenderStrength) {
     const result = new CombatResult();
     let atk = attackerStrength - C.UNITS_LEFT_BEHIND;
     let def = defenderStrength;
 
     while (atk > 0 && def > 0) {
-      const roll = rng.next();
+      const roll = Math.random();
       if (roll < C.ATTACKER_WIN_CHANCE) {
         def--;
         result.rounds.push({ attackerWins: true, atk, def });
@@ -1216,7 +1216,7 @@ class VictoryChecker {
    AI CONTROLLER
    ======================================== */
 class AIController {
-  static async executeTurn(faction, state, rng, onAttack) {
+  static async executeTurn(faction, state, onAttack) {
     const tried = new Set(); // Track nodes that have been fully exhausted
 
     while (true) {
@@ -1229,7 +1229,7 @@ class AIController {
       // Pick strongest node to attack from (random tie-break)
       ownedNodes.sort((a, b) => b.strength - a.strength);
       const maxStr = ownedNodes[0].strength;
-      const candidates = rng.shuffle(ownedNodes.filter(n => n.strength === maxStr));
+      const candidates = ownedNodes.filter(n => n.strength === maxStr).sort(() => Math.random() - 0.5);
       const attacker = candidates[0];
 
       let didAttack = false;
@@ -1250,11 +1250,11 @@ class AIController {
         // Attack weakest, random tie-break
         targets.sort((a, b) => a.strength - b.strength);
         const minStr = targets[0].strength;
-        const weakest = rng.shuffle(targets.filter(t => t.strength === minStr));
+        const weakest = targets.filter(t => t.strength === minStr).sort(() => Math.random() - 0.5);
         const defender = weakest[0];
 
         // Execute combat
-        const result = CombatResolver.resolve(attacker.strength, defender.strength, rng);
+        const result = CombatResolver.resolve(attacker.strength, defender.strength);
 
         if (result.attackerWon) {
           attacker.strength = C.UNITS_LEFT_BEHIND;
@@ -2015,7 +2015,7 @@ class GameManager {
     this.phase = GamePhase.ANIMATING;
     this.updateHUD();
 
-    const result = CombatResolver.resolve(attacker.strength, defender.strength, this.rng);
+    const result = CombatResolver.resolve(attacker.strength, defender.strength);
 
     // Animate combat
     if (this.settings.animationSpeed > 0) {
@@ -2090,7 +2090,7 @@ class GameManager {
 
       const delay = this.settings.delayMs;
 
-      await AIController.executeTurn(faction, this.state, this.rng, async (atkId, defId, result) => {
+      await AIController.executeTurn(faction, this.state, async (atkId, defId, result) => {
         const atkNode = this.state.nodes.get(atkId);
         const defNode = this.state.nodes.get(defId);
         this.renderer.attackPath = { from: atkNode, to: defNode, color: this.renderer.getColor(faction) };
