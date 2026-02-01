@@ -1,4 +1,4 @@
-const CACHE_NAME = 'onw-v2';
+const CACHE_NAME = 'onw-v3';
 const ASSETS = [
   './',
   './index.html',
