@@ -310,11 +310,6 @@ h1, h2, h3, h4 {
   min-height: 48px;
   flex-shrink: 0;
 }
-#turn-info {
-  font-family: 'Space Mono', monospace;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
 #game-footer .btn { font-size: 13px; }
 
 /* ========================================
@@ -586,16 +581,13 @@ h1, h2, h3, h4 {
    COMBAT LOG TOAST
    ======================================== */
 #combat-log {
-  position: absolute;
-  bottom: 60px; left: var(--sp-4); right: var(--sp-4);
+  flex: 1;
   font-family: 'Space Mono', monospace;
   font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
-  pointer-events: none;
   opacity: 0;
   transition: opacity var(--transition-normal);
-  z-index: 50;
 }
 #combat-log.visible { opacity: 1; }
 </style>
@@ -654,10 +646,10 @@ h1, h2, h3, h4 {
   </div>
   <div id="canvas-wrap">
     <canvas id="gameCanvas"></canvas>
-    <div id="combat-log"></div>
   </div>
   <div id="game-footer">
-    <div id="turn-info">YOUR TURN</div>
+    <button class="btn btn--sm btn--danger" id="btn-surrender">SURRENDER</button>
+    <div id="combat-log"></div>
     <button class="btn btn--sm" id="btn-end-turn">END TURN</button>
   </div>
   <div id="pause-overlay">
@@ -1328,6 +1320,7 @@ class Renderer {
     // Draw links
     ctx.lineWidth = 1.5;
     ctx.strokeStyle = '#333333';
+    ctx.setLineDash([4, 4]);
     const drawnLinks = new Set();
     for (const [id, node] of state.nodes) {
       const posA = this.gridToScreen(node.gridX, node.gridY);
@@ -1343,12 +1336,13 @@ class Renderer {
         ctx.stroke();
       }
     }
+    ctx.setLineDash([]);
 
     // Draw attack path
     if (this.attackPath) {
       const a = this.gridToScreen(this.attackPath.from.gridX, this.attackPath.from.gridY);
       const b = this.gridToScreen(this.attackPath.to.gridX, this.attackPath.to.gridY);
-      ctx.strokeStyle = '#FFD700';
+      ctx.strokeStyle = this.attackPath.color || '#FFD700';
       ctx.lineWidth = 3;
       ctx.setLineDash([6, 4]);
       ctx.beginPath();
@@ -1656,6 +1650,11 @@ class GameManager {
     // Buttons
     document.getElementById('btn-play').onclick = () => this.startGame();
     document.getElementById('btn-end-turn').onclick = () => this.endPlayerTurn();
+    document.getElementById('btn-surrender').onclick = () => {
+      if (this.phase === GamePhase.PLAYER_TURN) {
+        showConfirm('Surrender this game?', () => this.endGame(false));
+      }
+    };
     document.getElementById('btn-pause').onclick = () => togglePause(true);
     document.getElementById('btn-resume').onclick = () => togglePause(false);
     document.getElementById('btn-pause-settings').onclick = () => {
@@ -1830,16 +1829,17 @@ class GameManager {
       container.appendChild(el);
     }
 
-    const turnInfo = document.getElementById('turn-info');
     const endBtn = document.getElementById('btn-end-turn');
+    const surrenderBtn = document.getElementById('btn-surrender');
     if (this.phase === GamePhase.PLAYER_TURN) {
-      turnInfo.textContent = 'YOUR TURN';
       endBtn.disabled = false;
+      surrenderBtn.disabled = false;
     } else if (this.phase === GamePhase.AI_TURN) {
-      turnInfo.textContent = Faction.NAMES[this.state.currentTurn].toUpperCase() + ' TURN';
       endBtn.disabled = true;
+      surrenderBtn.disabled = true;
     } else if (this.phase === GamePhase.ANIMATING) {
       endBtn.disabled = true;
+      surrenderBtn.disabled = true;
     }
   }
 
@@ -1901,7 +1901,7 @@ class GameManager {
     const attacker = this.state.nodes.get(attackerId);
     const defender = this.state.nodes.get(defenderId);
 
-    this.renderer.attackPath = { from: attacker, to: defender };
+    this.renderer.attackPath = { from: attacker, to: defender, color: this.renderer.getColor(Faction.PLAYER) };
     this.renderer.dirty = true;
 
     this.phase = GamePhase.ANIMATING;
@@ -1983,9 +1983,14 @@ class GameManager {
       const delay = this.settings.delayMs;
 
       await AIController.executeTurn(faction, this.state, this.rng, async (atkId, defId, result) => {
+        const atkNode = this.state.nodes.get(atkId);
+        const defNode = this.state.nodes.get(defId);
+        this.renderer.attackPath = { from: atkNode, to: defNode, color: this.renderer.getColor(faction) };
         this.renderer.dirty = true;
         this.updateHUD();
         if (delay > 0) await sleep(delay);
+        this.renderer.attackPath = null;
+        this.renderer.dirty = true;
 
         this.checkVictory();
       });
