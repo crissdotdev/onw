@@ -590,6 +590,50 @@ h1, h2, h3, h4 {
   transition: opacity var(--transition-normal);
 }
 #combat-log.visible { opacity: 1; }
+
+/* ========================================
+   RESPONSIVE: TABLET & DESKTOP
+   ======================================== */
+@media (min-width: 768px) {
+  .screen {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  #game {
+    max-width: 900px;
+  }
+  #menu .menu-buttons {
+    max-width: 340px;
+  }
+  #gameover .result-stats {
+    max-width: 340px;
+  }
+  #pause-overlay .pause-menu {
+    width: 300px;
+  }
+  #confirm-dialog .dialog-box {
+    max-width: 360px;
+    padding: var(--sp-8);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .screen-header h2 { font-size: 22px; }
+  #splash .logo { font-size: 64px; }
+  #menu .menu-title { font-size: 48px; }
+  #gameover .result-title { font-size: 40px; }
+  #game-footer .btn { font-size: 14px; }
+  #combat-log { font-size: 13px; }
+}
+
+@media (min-width: 1200px) {
+  .screen {
+    max-width: 560px;
+  }
+  #game {
+    max-width: 1000px;
+  }
+}
 </style>
 </head>
 <body>
@@ -1259,6 +1303,13 @@ class Renderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.displayWidth = w;
     this.displayHeight = h;
+
+    // Scale nodes and margins to canvas size
+    const minDim = Math.min(w, h);
+    this.nodeRadius = Math.max(16, Math.min(32, minDim * 0.05));
+    const margin = Math.max(20, minDim * 0.06);
+    this.margins = { top: margin, bottom: margin, left: margin, right: margin };
+
     this.dirty = true;
   }
 
@@ -1381,7 +1432,8 @@ class Renderer {
 
       // Strength text
       ctx.fillStyle = node.faction === Faction.YELLOW ? '#000000' : '#FFFFFF';
-      ctx.font = "bold 13px 'Space Mono', monospace";
+      const fontSize = Math.round(this.nodeRadius * 0.65);
+      ctx.font = `bold ${fontSize}px 'Space Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(node.strength, pos.x, pos.y);
@@ -1397,9 +1449,10 @@ class Renderer {
       const pos = this.gridToScreen(ft.gridX, ft.gridY);
       ctx.globalAlpha = alpha;
       ctx.fillStyle = '#43A047';
-      ctx.font = "bold 14px 'Space Mono', monospace";
+      const ftSize = Math.round(this.nodeRadius * 0.7);
+      ctx.font = `bold ${ftSize}px 'Space Mono', monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText('+' + ft.amount, pos.x, pos.y - this.nodeRadius - 10 + offsetY);
+      ctx.fillText('+' + ft.amount, pos.x, pos.y - this.nodeRadius - 8 + offsetY);
       ctx.globalAlpha = 1;
       return true;
     });
