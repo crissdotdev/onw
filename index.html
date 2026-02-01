@@ -1000,10 +1000,9 @@ class NetworkGenerator {
       }
     }
 
-    // Distribute strength using predefined templates
-    const distTemplate = STRENGTH_DISTRIBUTIONS[rng.nextInt(0, STRENGTH_DISTRIBUTIONS.length - 1)];
-
+    // Distribute strength using predefined templates (each faction picks independently)
     for (let f = 0; f < C.FACTION_COUNT; f++) {
+      const distTemplate = STRENGTH_DISTRIBUTIONS[rng.nextInt(0, STRENGTH_DISTRIBUTIONS.length - 1)];
       const factionNodes = nodeIds.slice(f * C.NODES_PER_FACTION, (f + 1) * C.NODES_PER_FACTION);
       const shuffledDist = rng.shuffle(distTemplate);
       for (let i = 0; i < factionNodes.length; i++) {
