@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icons/icon-192.png" alt="ONW" width="128">
+</p>
+
 # ONW — Open Network Wars
 
 A strategic network conquest game playable in your browser. Capture nodes, chain attacks, and eliminate rival factions across a procedurally generated network.
