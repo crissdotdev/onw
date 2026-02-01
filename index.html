@@ -800,6 +800,15 @@ h1, h2, h3, h4 {
       </div>
       <div class="toggle" id="toggle-colorblind"></div>
     </div>
+    <div class="setting-item" style="border-bottom:none;flex-direction:column;align-items:stretch;gap:var(--sp-3);">
+      <div class="setting-label">Data</div>
+      <div style="display:flex;gap:var(--sp-3);">
+        <button class="btn btn--sm" id="btn-export" style="flex:1;">EXPORT</button>
+        <button class="btn btn--sm" id="btn-import" style="flex:1;">IMPORT</button>
+        <button class="btn btn--sm btn--danger" id="btn-reset" style="flex:1;">RESET</button>
+      </div>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none;">
   </div>
 </div>
 
@@ -1759,6 +1768,58 @@ class GameManager {
       this.settings.save();
       this.gunSync.syncSettings(this.settings);
       if (this.state) { this.renderer.dirty = true; this.renderer.draw(this.state); }
+    };
+
+    // Export / Import
+    document.getElementById('btn-export').onclick = () => {
+      const data = {
+        onw_version: 1,
+        stats: JSON.parse(localStorage.getItem('onw_stats') || '{}'),
+        settings: JSON.parse(localStorage.getItem('onw_settings') || '{}')
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'onw-save.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+    document.getElementById('btn-import').onclick = () => {
+      document.getElementById('import-file').click();
+    };
+    document.getElementById('import-file').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!data.stats && !data.settings) throw new Error('Invalid file');
+          showConfirm('Replace current data with imported save?', () => {
+            if (data.stats) localStorage.setItem('onw_stats', JSON.stringify(data.stats));
+            if (data.settings) localStorage.setItem('onw_settings', JSON.stringify(data.settings));
+            this.statsManager.load();
+            this.settings.load();
+            this.updateMenuGameNum();
+            this.renderer.colorblind = this.settings.colorblindMode;
+            this.setupUI();
+          });
+        } catch (err) {
+          alert('Invalid save file');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    };
+    document.getElementById('btn-reset').onclick = () => {
+      showConfirm('Reset all stats? This cannot be undone.', () => {
+        this.statsManager.currentGame = 1;
+        this.statsManager.wins = 0;
+        this.statsManager.losses = 0;
+        this.statsManager.history = [];
+        this.statsManager.save();
+        this.updateMenuGameNum();
+      });
     };
 
     // Offline detection
