@@ -1,7 +1,8 @@
-const CACHE_NAME = 'onw-v4';
+const CACHE_NAME = 'onw-v5';
 const ASSETS = [
   './',
   './index.html',
+  './game.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
