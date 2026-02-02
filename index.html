@@ -681,7 +681,7 @@ h1, h2, h3, h4 {
     <button class="btn btn--wide" id="btn-about">ABOUT</button>
   </div>
   <a href="https://networkwars.com" target="_blank" rel="noopener" style="margin-top:var(--sp-8);font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted);text-decoration:none;">Original: Network Wars</a>
-  <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);opacity:0.5;margin-top:var(--sp-2);">v1.1.0</div>
+  <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);opacity:0.5;margin-top:var(--sp-2);">v1.2.0</div>
 </div>
 
 <!-- GAME -->
@@ -826,7 +826,7 @@ h1, h2, h3, h4 {
     </div>
     <div class="about-section">
       <h3>VERSION</h3>
-      <p>1.1.0 &mdash; PWA Edition</p>
+      <p>1.2.0 &mdash; PWA Edition</p>
     </div>
     <div class="about-section">
       <h3>CREDITS</h3>
@@ -1705,7 +1705,14 @@ class GameManager {
     });
 
     // Buttons
-    document.getElementById('btn-play').onclick = () => this.startGame();
+    document.getElementById('btn-play').onclick = () => {
+      const saved = this.loadGame();
+      if (saved) {
+        this.resumeGame(saved);
+      } else {
+        this.startGame();
+      }
+    };
     document.getElementById('btn-end-turn').onclick = () => this.endPlayerTurn();
     document.getElementById('btn-surrender').onclick = () => {
       if (this.phase === GamePhase.PLAYER_TURN) {
@@ -1722,7 +1729,10 @@ class GameManager {
     document.getElementById('btn-quit').onclick = () => {
       showConfirm('Quit this game?', () => {
         togglePause(false);
+        this.saveGame();
+        this.stopRenderLoop();
         showScreen('menu');
+        this.updateMenuGameNum();
       });
     };
     document.getElementById('btn-next-game').onclick = () => this.startGame();
@@ -1776,7 +1786,8 @@ class GameManager {
       const data = {
         onw_version: 1,
         stats: JSON.parse(localStorage.getItem('onw_stats') || '{}'),
-        settings: JSON.parse(localStorage.getItem('onw_settings') || '{}')
+        settings: JSON.parse(localStorage.getItem('onw_settings') || '{}'),
+        game: JSON.parse(localStorage.getItem('onw_game') || 'null')
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
@@ -1799,6 +1810,8 @@ class GameManager {
           showConfirm('Replace current data with imported save?', () => {
             if (data.stats) localStorage.setItem('onw_stats', JSON.stringify(data.stats));
             if (data.settings) localStorage.setItem('onw_settings', JSON.stringify(data.settings));
+            if (data.game) localStorage.setItem('onw_game', JSON.stringify(data.game));
+            else localStorage.removeItem('onw_game');
             this.statsManager.load();
             this.settings.load();
             this.updateMenuGameNum();
@@ -1819,6 +1832,7 @@ class GameManager {
         this.statsManager.losses = 0;
         this.statsManager.history = [];
         this.statsManager.save();
+        this.clearSavedGame();
         this.updateMenuGameNum();
       });
     };
@@ -1840,6 +1854,8 @@ class GameManager {
 
   updateMenuGameNum() {
     document.getElementById('menu-game-num').textContent = `GAME #${this.statsManager.currentGame}`;
+    const hasSave = localStorage.getItem('onw_game') !== null;
+    document.getElementById('btn-play').textContent = hasSave ? 'CONTINUE' : 'PLAY';
   }
 
   async handleAuth(mode) {
@@ -1880,11 +1896,8 @@ class GameManager {
     }
   }
 
-  startGame() {
-    const gameNum = this.statsManager.currentGame;
-    this.rng = SeedManager.createRNG(gameNum);
-    this.state = NetworkGenerator.generate(this.rng);
-    this.state.gameNumber = gameNum;
+  _enterGame() {
+    this.state.currentTurn = Faction.PLAYER;
     this.phase = GamePhase.PLAYER_TURN;
     this.selectedNode = null;
     this.renderer.selectedNode = null;
@@ -1896,6 +1909,19 @@ class GameManager {
     this.renderer.resize();
     this.updateHUD();
     this.startRenderLoop();
+  }
+
+  startGame() {
+    const gameNum = this.statsManager.currentGame;
+    this.rng = SeedManager.createRNG(gameNum);
+    this.state = NetworkGenerator.generate(this.rng);
+    this.state.gameNumber = gameNum;
+    this._enterGame();
+  }
+
+  resumeGame(state) {
+    this.state = state;
+    this._enterGame();
   }
 
   startRenderLoop() {
@@ -1914,6 +1940,57 @@ class GameManager {
       cancelAnimationFrame(this.animFrameId);
       this.animFrameId = null;
     }
+  }
+
+  saveGame() {
+    if (!this.state || this.state.isGameOver) {
+      localStorage.removeItem('onw_game');
+      return;
+    }
+    const nodes = [];
+    for (const [id, node] of this.state.nodes) {
+      nodes.push({
+        id: node.id, gridX: node.gridX, gridY: node.gridY,
+        faction: node.faction, strength: node.strength,
+        connections: node.connections
+      });
+    }
+    const data = {
+      nodes,
+      gameNumber: this.state.gameNumber,
+      isGameOver: this.state.isGameOver,
+      eliminatedFactions: [...this.state.eliminatedFactions],
+      fractions: this.state.fractions
+    };
+    localStorage.setItem('onw_game', JSON.stringify(data));
+  }
+
+  loadGame() {
+    const raw = localStorage.getItem('onw_game');
+    if (!raw) return null;
+    try {
+      const data = JSON.parse(raw);
+      const state = new GameState();
+      state.gameNumber = data.gameNumber;
+      state.isGameOver = data.isGameOver;
+      state.eliminatedFactions = new Set(data.eliminatedFactions);
+      state.fractions = data.fractions;
+      for (const n of data.nodes) {
+        const node = new NodeData(n.id, n.gridX, n.gridY);
+        node.faction = n.faction;
+        node.strength = n.strength;
+        node.connections = n.connections;
+        state.nodes.set(n.id, node);
+      }
+      return state;
+    } catch (e) {
+      localStorage.removeItem('onw_game');
+      return null;
+    }
+  }
+
+  clearSavedGame() {
+    localStorage.removeItem('onw_game');
   }
 
   updateHUD() {
@@ -2043,6 +2120,7 @@ class GameManager {
     this.phase = GamePhase.PLAYER_TURN;
     this.deselectNode();
     this.updateHUD();
+    this.saveGame();
   }
 
   async animateCombat(attacker, defender, result) {
@@ -2122,6 +2200,7 @@ class GameManager {
     this.state.currentTurn = Faction.PLAYER;
     this.phase = GamePhase.PLAYER_TURN;
     this.updateHUD();
+    this.saveGame();
 
     this.checkVictory();
   }
@@ -2140,6 +2219,7 @@ class GameManager {
     this.phase = GamePhase.GAME_OVER;
     this.state.isGameOver = true;
     this.stopRenderLoop();
+    this.clearSavedGame();
 
     // Record stats
     this.statsManager.recordResult(playerWon);
