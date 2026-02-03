@@ -7,7 +7,7 @@
    CONSTANTS
    ======================================== */
 const C = Object.freeze({
-  VERSION: '1.4.0',
+  VERSION: '1.4.1',
   GRID_COLS: 6,
   GRID_ROWS: 7,
   TOTAL_NODES: 30,

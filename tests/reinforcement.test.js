@@ -60,9 +60,9 @@ describe('ReinforcementManager', () => {
     expect(result.total).toBe(0);
   });
 
-  it('reinforcements reflect post-combat state when applied after all attacks', async () => {
-    // Scenario: Blue has 3 nodes, Green attacks and captures 2 of them.
-    // Reinforcements should be based on Blue's remaining 1 node, not the original 3.
+  it('per-faction reinforcements use post-combat state of that faction', async () => {
+    // Rule: each faction reinforces immediately after its own attacks,
+    // based on the board state AFTER those attacks (not before).
     vi.spyOn(Math, 'random').mockReturnValue(0.1); // attacker always wins
 
     const state = buildState([
@@ -70,22 +70,70 @@ describe('ReinforcementManager', () => {
       { id: 0, faction: Faction.BLUE, strength: 2, connections: [1] },
       { id: 1, faction: Faction.BLUE, strength: 2, connections: [0, 2] },
       { id: 2, faction: Faction.BLUE, strength: 2, connections: [1, 3] },
-      // Green with strong attacker adjacent to Blue nodes 1 and 2
+      // Green with strong attacker adjacent to Blue
       { id: 3, faction: Faction.GREEN, strength: 10, connections: [2, 4] },
       { id: 4, faction: Faction.GREEN, strength: 1, connections: [3] },
     ]);
 
-    // Green attacks Blue — should capture nodes 2 and 1
+    // Green attacks — captures some Blue nodes
     await AIController.executeTurn(Faction.GREEN, state, async () => {});
 
-    // Blue should have lost nodes to Green
-    const blueNodesAfter = state.countNodes(Faction.BLUE);
-    expect(blueNodesAfter).toBeLessThan(3);
+    const greenNodesAfter = state.countNodes(Faction.GREEN);
+    expect(greenNodesAfter).toBeGreaterThan(2); // Green gained nodes
 
-    // Now apply Blue reinforcements — should be based on remaining nodes, not 3
-    const reinf = ReinforcementManager.apply(Faction.BLUE, state);
-    // Reinforcement total cannot exceed remaining cluster size (+ fraction which is 0)
-    expect(reinf.total).toBeLessThanOrEqual(blueNodesAfter);
+    // Green reinforces immediately after its attacks (post-combat state)
+    const greenReinf = ReinforcementManager.apply(Faction.GREEN, state);
+    // Green's reinforcement should be based on its expanded territory
+    expect(greenReinf.total).toBeLessThanOrEqual(greenNodesAfter);
+    expect(greenReinf.total).toBeGreaterThan(0);
+
+    // Blue reinforces after its own turn (which may be no attacks)
+    const blueNodesAfter = state.countNodes(Faction.BLUE);
+    const blueReinf = ReinforcementManager.apply(Faction.BLUE, state);
+    // Blue reinforcement is based on its diminished territory
+    expect(blueReinf.total).toBeLessThanOrEqual(blueNodesAfter);
+
+    vi.restoreAllMocks();
+  });
+
+  it('faction reinforces after its own attacks, not after all factions', async () => {
+    // Simulates the per-faction flow: Faction A attacks then reinforces,
+    // then Faction B attacks then reinforces.
+    vi.spyOn(Math, 'random').mockReturnValue(0.1); // attacker always wins
+
+    const state = buildState([
+      // Red (player) has 3 nodes
+      { id: 0, faction: Faction.RED, strength: 2, connections: [1] },
+      { id: 1, faction: Faction.RED, strength: 2, connections: [0, 2] },
+      { id: 2, faction: Faction.RED, strength: 2, connections: [1, 3] },
+      // Blue with 2 nodes, adjacent to Red
+      { id: 3, faction: Faction.BLUE, strength: 8, connections: [2, 4] },
+      { id: 4, faction: Faction.BLUE, strength: 1, connections: [3, 5] },
+      // Green with 2 nodes, adjacent to Blue
+      { id: 5, faction: Faction.GREEN, strength: 8, connections: [4, 6] },
+      { id: 6, faction: Faction.GREEN, strength: 1, connections: [5] },
+    ]);
+
+    // Step 1: Red (player) ends turn — Red reinforces first
+    const redReinfBefore = ReinforcementManager.apply(Faction.RED, state);
+    const redStr1 = state.nodes.get(2).strength; // frontline node got reinforced
+    expect(redReinfBefore.total).toBe(3); // cluster=3, frontline=[2], perNode=3
+
+    // Step 2: Blue attacks (captures Red node 2)
+    await AIController.executeTurn(Faction.BLUE, state, async () => {});
+    const blueNodesAfterAttack = state.countNodes(Faction.BLUE);
+
+    // Step 3: Blue reinforces immediately after its attacks
+    const blueReinf = ReinforcementManager.apply(Faction.BLUE, state);
+    expect(blueReinf.total).toBeLessThanOrEqual(blueNodesAfterAttack);
+
+    // Step 4: Green attacks
+    await AIController.executeTurn(Faction.GREEN, state, async () => {});
+    const greenNodesAfterAttack = state.countNodes(Faction.GREEN);
+
+    // Step 5: Green reinforces immediately after its attacks
+    const greenReinf = ReinforcementManager.apply(Faction.GREEN, state);
+    expect(greenReinf.total).toBeLessThanOrEqual(greenNodesAfterAttack);
 
     vi.restoreAllMocks();
   });

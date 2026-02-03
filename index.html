@@ -1727,7 +1727,12 @@ class GameManager {
     this.phase = GamePhase.ANIMATING;
     this.updateHUD();
 
-    // AI attack phase — all factions attack before any reinforcements
+    // Player reinforcements — applied after player's attacks, before AI turns
+    this.applyFactionReinforcements(Faction.PLAYER);
+    this.renderer.dirty = true;
+    if (this.settings.animationSpeed > 0) await sleep(this.settings.delayMs * 2);
+
+    // AI turns — each faction attacks then reinforces before the next faction
     for (const faction of Faction.TURN_ORDER) {
       if (faction === Faction.PLAYER) continue;
       if (this.state.eliminatedFactions.has(faction)) continue;
@@ -1754,24 +1759,11 @@ class GameManager {
       if (this.state.isGameOver) return;
       if (this.checkVictory()) return;
 
-      if (this.settings.delayMs > 0) await sleep(this.settings.delayMs);
-    }
-
-    // Reinforcement phase — all factions reinforce based on current state
-    this.phase = GamePhase.ANIMATING;
-    for (const faction of Faction.TURN_ORDER) {
-      if (this.state.eliminatedFactions.has(faction)) continue;
-      if (this.state.countNodes(faction) === 0) continue;
-
-      const reinf = ReinforcementManager.apply(faction, this.state);
-      for (const r of reinf.reinforced) {
-        const node = this.state.nodes.get(r.id);
-        this.renderer.addFloatingText(node.gridX, node.gridY, r.amount);
-      }
+      // Reinforce this faction based on post-combat state
+      this.applyFactionReinforcements(faction);
       this.renderer.dirty = true;
+      if (this.settings.animationSpeed > 0) await sleep(this.settings.delayMs);
     }
-
-    if (this.settings.animationSpeed > 0) await sleep(this.settings.delayMs * 2);
 
     // Back to player
     this.state.currentTurn = Faction.PLAYER;
@@ -1780,6 +1772,17 @@ class GameManager {
     this.saveGame();
 
     this.checkVictory();
+  }
+
+  applyFactionReinforcements(faction) {
+    if (this.state.eliminatedFactions.has(faction)) return;
+    if (this.state.countNodes(faction) === 0) return;
+
+    const reinf = ReinforcementManager.apply(faction, this.state);
+    for (const r of reinf.reinforced) {
+      const node = this.state.nodes.get(r.id);
+      this.renderer.addFloatingText(node.gridX, node.gridY, r.amount);
+    }
   }
 
   checkVictory() {
