@@ -681,7 +681,7 @@ h1, h2, h3, h4 {
     <button class="btn btn--wide" id="btn-about">ABOUT</button>
   </div>
   <a href="https://networkwars.com" target="_blank" rel="noopener" style="margin-top:var(--sp-8);font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted);text-decoration:none;">Original: Network Wars</a>
-  <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);opacity:0.5;margin-top:var(--sp-2);">v1.3.0</div>
+  <div id="menu-version" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);opacity:0.5;margin-top:var(--sp-2);"></div>
 </div>
 
 <!-- GAME -->
@@ -826,7 +826,7 @@ h1, h2, h3, h4 {
     </div>
     <div class="about-section">
       <h3>VERSION</h3>
-      <p>1.4.0 &mdash; PWA Edition</p>
+      <p id="about-version"></p>
     </div>
     <div class="about-section">
       <h3>CREDITS</h3>
@@ -1419,6 +1419,10 @@ class GameManager {
   }
 
   setupUI() {
+    // Version labels
+    document.getElementById('menu-version').textContent = `v${C.VERSION}`;
+    document.getElementById('about-version').textContent = `${C.VERSION} — PWA Edition`;
+
     // Init settings UI
     document.querySelectorAll('#speed-btns .speed-btn').forEach(btn => {
       btn.classList.toggle('active', parseInt(btn.dataset.speed) === this.settings.animationSpeed);
