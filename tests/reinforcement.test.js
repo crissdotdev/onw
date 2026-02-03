@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { ReinforcementManager, Faction } from '../game.js';
+import { describe, it, expect, vi } from 'vitest';
+import { ReinforcementManager, AIController, Faction } from '../game.js';
 import { buildState } from './helpers.js';
 
 describe('ReinforcementManager', () => {
@@ -58,5 +58,35 @@ describe('ReinforcementManager', () => {
     const result = ReinforcementManager.apply(Faction.RED, state);
     expect(result.reinforced).toEqual([]);
     expect(result.total).toBe(0);
+  });
+
+  it('reinforcements reflect post-combat state when applied after all attacks', async () => {
+    // Scenario: Blue has 3 nodes, Green attacks and captures 2 of them.
+    // Reinforcements should be based on Blue's remaining 1 node, not the original 3.
+    vi.spyOn(Math, 'random').mockReturnValue(0.1); // attacker always wins
+
+    const state = buildState([
+      // Blue cluster: 3 nodes in a line
+      { id: 0, faction: Faction.BLUE, strength: 2, connections: [1] },
+      { id: 1, faction: Faction.BLUE, strength: 2, connections: [0, 2] },
+      { id: 2, faction: Faction.BLUE, strength: 2, connections: [1, 3] },
+      // Green with strong attacker adjacent to Blue nodes 1 and 2
+      { id: 3, faction: Faction.GREEN, strength: 10, connections: [2, 4] },
+      { id: 4, faction: Faction.GREEN, strength: 1, connections: [3] },
+    ]);
+
+    // Green attacks Blue — should capture nodes 2 and 1
+    await AIController.executeTurn(Faction.GREEN, state, async () => {});
+
+    // Blue should have lost nodes to Green
+    const blueNodesAfter = state.countNodes(Faction.BLUE);
+    expect(blueNodesAfter).toBeLessThan(3);
+
+    // Now apply Blue reinforcements — should be based on remaining nodes, not 3
+    const reinf = ReinforcementManager.apply(Faction.BLUE, state);
+    // Reinforcement total cannot exceed remaining cluster size (+ fraction which is 0)
+    expect(reinf.total).toBeLessThanOrEqual(blueNodesAfter);
+
+    vi.restoreAllMocks();
   });
 });

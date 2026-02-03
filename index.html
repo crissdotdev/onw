@@ -1723,17 +1723,7 @@ class GameManager {
     this.phase = GamePhase.ANIMATING;
     this.updateHUD();
 
-    // Player reinforcements
-    const reinf = ReinforcementManager.apply(Faction.PLAYER, this.state);
-    for (const r of reinf.reinforced) {
-      const node = this.state.nodes.get(r.id);
-      this.renderer.addFloatingText(node.gridX, node.gridY, r.amount);
-    }
-    this.renderer.dirty = true;
-
-    if (this.settings.animationSpeed > 0) await sleep(this.settings.delayMs * 2);
-
-    // AI turns
+    // AI attack phase — all factions attack before any reinforcements
     for (const faction of Faction.TURN_ORDER) {
       if (faction === Faction.PLAYER) continue;
       if (this.state.eliminatedFactions.has(faction)) continue;
@@ -1760,16 +1750,24 @@ class GameManager {
       if (this.state.isGameOver) return;
       if (this.checkVictory()) return;
 
-      // AI reinforcements
-      const aiReinf = ReinforcementManager.apply(faction, this.state);
-      for (const r of aiReinf.reinforced) {
+      if (this.settings.delayMs > 0) await sleep(this.settings.delayMs);
+    }
+
+    // Reinforcement phase — all factions reinforce based on current state
+    this.phase = GamePhase.ANIMATING;
+    for (const faction of Faction.TURN_ORDER) {
+      if (this.state.eliminatedFactions.has(faction)) continue;
+      if (this.state.countNodes(faction) === 0) continue;
+
+      const reinf = ReinforcementManager.apply(faction, this.state);
+      for (const r of reinf.reinforced) {
         const node = this.state.nodes.get(r.id);
         this.renderer.addFloatingText(node.gridX, node.gridY, r.amount);
       }
       this.renderer.dirty = true;
-
-      if (delay > 0) await sleep(delay);
     }
+
+    if (this.settings.animationSpeed > 0) await sleep(this.settings.delayMs * 2);
 
     // Back to player
     this.state.currentTurn = Faction.PLAYER;
