@@ -1,4 +1,4 @@
-const CACHE_NAME = 'onw-v8';
+const CACHE_NAME = 'onw-v9';
 const ASSETS = [
   './',
   './index.html',

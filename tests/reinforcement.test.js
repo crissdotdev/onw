@@ -36,7 +36,7 @@ describe('ReinforcementManager', () => {
     }
   });
 
-  it('fractional remainder stored in state.fractions', () => {
+  it('remainder units distributed so total equals cluster size', () => {
     const state = buildState([
       { id: 0, faction: Faction.RED, strength: 1, connections: [1] },
       { id: 1, faction: Faction.RED, strength: 1, connections: [0, 2, 3] },
@@ -45,9 +45,44 @@ describe('ReinforcementManager', () => {
       { id: 4, faction: Faction.GREEN, strength: 2, connections: [2] },
     ]);
     // Cluster: [0,1,2] = size 3, frontline: [1,2] = 2 frontline nodes
-    // perNode = floor(3 / 2) = 1, remainder = 3 - (1*2) = 1
+    // perNode = floor(3 / 2) = 1, remainder = 1 → one random node gets +1
     const result = ReinforcementManager.apply(Faction.RED, state);
-    expect(state.fractions[Faction.RED]).toBe(1);
+    // All 3 units must be distributed, none stored as fraction
+    expect(result.total).toBe(3);
+    expect(state.fractions[Faction.RED]).toBe(0);
+    // One node gets 2, the other gets 1
+    const amounts = result.reinforced.map(r => r.amount).sort();
+    expect(amounts).toEqual([1, 2]);
+  });
+
+  it('remainder distributed across frontline for larger example (9 nodes, 5 frontline)', () => {
+    // 9 nodes, 5 enemy-facing: perNode=1, remainder=4 → 4 nodes get +1
+    const state = buildState([
+      // 9-node Red cluster
+      { id: 0, faction: Faction.RED, strength: 1, connections: [1] },
+      { id: 1, faction: Faction.RED, strength: 1, connections: [0, 2] },
+      { id: 2, faction: Faction.RED, strength: 1, connections: [1, 3] },
+      { id: 3, faction: Faction.RED, strength: 1, connections: [2, 4] },
+      { id: 4, faction: Faction.RED, strength: 1, connections: [3, 5, 6, 7, 8, 13] },
+      // 5 frontline nodes (each adjacent to an enemy)
+      { id: 5, faction: Faction.RED, strength: 1, connections: [4, 9] },
+      { id: 6, faction: Faction.RED, strength: 1, connections: [4, 10] },
+      { id: 7, faction: Faction.RED, strength: 1, connections: [4, 11] },
+      { id: 8, faction: Faction.RED, strength: 1, connections: [4, 12] },
+      // node 4 is also frontline via node 13
+      { id: 9, faction: Faction.BLUE, strength: 2, connections: [5] },
+      { id: 10, faction: Faction.BLUE, strength: 2, connections: [6] },
+      { id: 11, faction: Faction.BLUE, strength: 2, connections: [7] },
+      { id: 12, faction: Faction.BLUE, strength: 2, connections: [8] },
+      { id: 13, faction: Faction.BLUE, strength: 2, connections: [4] },
+    ]);
+    const result = ReinforcementManager.apply(Faction.RED, state);
+    // Total must equal cluster size (9), no fractions stored
+    expect(result.total).toBe(9);
+    expect(state.fractions[Faction.RED]).toBe(0);
+    // 5 frontline nodes: 4 get 2, 1 gets 1
+    const amounts = result.reinforced.map(r => r.amount).sort();
+    expect(amounts).toEqual([1, 2, 2, 2, 2]);
   });
 
   it('no reinforcements if no frontline', () => {

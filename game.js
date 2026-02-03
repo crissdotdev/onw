@@ -7,7 +7,7 @@
    CONSTANTS
    ======================================== */
 const C = Object.freeze({
-  VERSION: '1.4.1',
+  VERSION: '1.4.2',
   GRID_COLS: 6,
   GRID_ROWS: 7,
   TOTAL_NODES: 30,
@@ -318,18 +318,26 @@ class ReinforcementManager {
 
     const rawTotal = cluster.length + state.fractions[faction];
     const perNode = Math.floor(rawTotal / frontline.length);
-    const remainder = rawTotal - (perNode * frontline.length);
-    state.fractions[faction] = remainder;
+    const remainder = rawTotal % frontline.length;
+    state.fractions[faction] = 0;
+
+    // Distribute base amount to all frontline nodes, plus +1 to random nodes for remainder
+    const bonusNodes = new Set();
+    const shuffled = [...frontline].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < remainder; i++) bonusNodes.add(shuffled[i]);
 
     const reinforced = [];
+    let total = 0;
     for (const id of frontline) {
-      if (perNode > 0) {
-        state.nodes.get(id).strength += perNode;
-        reinforced.push({ id, amount: perNode });
+      const amount = perNode + (bonusNodes.has(id) ? 1 : 0);
+      if (amount > 0) {
+        state.nodes.get(id).strength += amount;
+        reinforced.push({ id, amount });
+        total += amount;
       }
     }
 
-    return { reinforced, total: perNode * frontline.length };
+    return { reinforced, total };
   }
 }
 
